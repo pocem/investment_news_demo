@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snowball News · Week {{ week_no }}</title>
+<style>
+  :root {
+    --ink: #1f2933; --muted: #5f6b7a; --soft: #8a8f98; --line: #e3e7ec;
+    --bg: #f4f6f8; --card: #ffffff; --accent: #2f5d8a; --accent-soft: #e8f0f8;
+    --up: #1e8e5a; --down: #c73a3a; --note: #fff7e0; --note-line: #f0d48a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+  .card { background: var(--card); border-radius: 14px; padding: 28px clamp(18px, 5vw, 40px); margin-bottom: 18px;
+          box-shadow: 0 1px 2px rgba(16,24,40,.05); }
+  .banner { border-radius: 14px; overflow: hidden; margin-bottom: 18px; color: #fff; text-align: center;
+            background: linear-gradient(180deg, #2f5d8a 0%, #4b7fae 55%, #9fc0dc 100%); position: relative; }
+  .banner .inner { padding: 38px 16px 64px; }
+  .banner h1 { margin: 0; font-size: clamp(30px, 7vw, 46px); letter-spacing: .08em; font-weight: 800; }
+  .banner p { margin: 6px 0 0; opacity: .9; font-size: 15px; }
+  .banner svg { position: absolute; bottom: 0; left: 0; width: 100%; height: 60px; }
+  h2 { font-size: 26px; text-align: center; margin: 0 0 18px; line-height: 1.25; }
+  h3 { font-size: 18px; margin: 26px 0 8px; }
+  h3:first-child { margin-top: 0; }
+  p { margin: 0 0 14px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 14px; }
+  .status { background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 10px 14px;
+            font-size: 15px; margin-bottom: 18px; }
+  ul.insights { padding-left: 20px; margin: 0; }
+  ul.insights li { margin-bottom: 12px; }
+  .mood { display: grid; grid-template-columns: minmax(0, 260px) 1fr; gap: 20px; align-items: center; }
+  .mood .rating { text-align: center; font-weight: 700; text-transform: capitalize; margin-top: -4px; }
+  @media (max-width: 560px) { .mood { grid-template-columns: 1fr; } .mood svg { max-width: 280px; margin: 0 auto; display: block; } }
+  .bars { margin: 6px 0 14px; }
+  .bar { display: grid; grid-template-columns: 170px 1fr 52px; gap: 10px; align-items: center; font-size: 15px; margin: 6px 0; }
+  .bar .track { background: #eef1f4; border-radius: 6px; height: 14px; overflow: hidden; }
+  .bar .fill { background: var(--accent); height: 100%; border-radius: 6px; }
+  .bar .num { text-align: right; font-variant-numeric: tabular-nums; }
+  @media (max-width: 480px) { .bar { grid-template-columns: 120px 1fr 46px; font-size: 14px; } }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .pill.beat { background: #e3f4ea; color: var(--up); } .pill.missed { background: #fbe7e7; color: var(--down); }
+  .pill.na { background: #eef0f3; color: var(--muted); }
+  .heat { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 18px; }
+  .heat div { border-radius: 8px; padding: 10px 10px 8px; min-height: 64px; display: flex; flex-direction: column;
+              justify-content: space-between; min-width: 92px; font-size: 13px; line-height: 1.25; }
+  .heat b { font-size: 15px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  @media (max-width: 560px) { .two { grid-template-columns: 1fr; } }
+  .day { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin: 0 0 18px; }
+  .day h4 { margin: 0 0 6px; font-size: 16px; }
+  .day ul { margin: 0; padding-left: 18px; }
+  .day li { margin-bottom: 4px; }
+  .day li.holiday { list-style: "\1F4C5  "; } .day li.econ { list-style: "\1F4CA  "; }
+  .day li.earnings { list-style: "\1F4BC  "; } .day li.earnings-more { list-style: "\2795  "; color: var(--muted); }
+  .day .quiet { color: var(--soft); font-style: italic; }
+  .news h4 { margin: 18px 0 6px; font-size: 15px; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+  .news ul { margin: 0; padding-left: 18px; }
+  .news li { margin-bottom: 6px; }
+  .news a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .news a:hover { border-color: var(--accent); }
+  .news .src { color: var(--soft); font-size: 14px; }
+  .term { background: var(--accent-soft); }
+  .footer { text-align: center; color: var(--muted); font-size: 13px; padding: 8px 16px; }
+  .footer em { display: block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner">
+    <div class="inner">
+      <h1>SNOWBALL NEWS</h1>
+      <p>Week {{ week_no }} · {{ this_week_range }}</p>
+    </div>
+    <svg viewBox="0 0 720 60" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0,60 L0,38 L60,22 L110,34 L170,12 L230,30 L290,16 L340,28 L400,6 L460,26 L520,14 L580,32 L640,18 L720,30 L720,60 Z" fill="#ffffff" opacity=".55"/>
+      <path d="M0,60 L0,46 L80,36 L150,44 L220,30 L300,42 L380,28 L450,40 L540,30 L620,42 L720,36 L720,60 Z" fill="#ffffff" opacity=".9"/>
+    </svg>
+  </div>
+
+  {% if status %}<div class="status">⚠️ {{ status }}</div>{% endif %}
+
+  <div class="card">
+    <h3>Hi and thank you for being here! 🦄</h3>
+    <p class="muted">Every week we explain what moved the markets, what's coming next and the ideas behind it,
+      so you build your own understanding over time. No jargon, no panic, just the story of the week.</p>
+    {% if mood %}
+    <p><b>The mood right now:</b> {{ mood.rating }} ({{ mood.score }} out of 100 on CNN's Fear & Greed meter).
+      A nervous market is a great time to learn, not to rush.</p>
+    {% endif %}
+  </div>
+
+  {% if insights %}
+  <div class="card">
+    <h2>Last Week ({{ last_week_no }}) at a Glance</h2>
+    <p class="muted small" style="text-align:center;margin-top:-10px">{{ last_week_range }}</p>
+    <ul class="insights">
+      {% for i in insights %}<li><b>{{ i.title }}</b> {{ i.text }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    {% if us %}<h3>United States</h3><p>{{ us }}</p>{% endif %}
+    {% if europe %}<h3>Europe</h3><p>{{ europe }}</p>{% endif %}
+    {% if asia %}<h3>Asia &amp; Emerging Markets</h3><p>{{ asia }}</p>{% endif %}
+  </div>
+
+  {% if mood %}
+  <div class="card">
+    <h2>Current Mood</h2>
+    <div class="mood">
+      <div>{{ mood.gauge | safe }}<div class="rating">{{ mood.rating }}</div></div>
+      <p class="muted">{{ mood.text }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if fed or econ %}
+  <div class="card">
+    <h2>Interest Rates & the Economy</h2>
+    {% if fed %}
+      <h3>What traders expect from the Fed</h3>
+      <p>{{ fed.text }}</p>
+      <div class="bars">
+        {% for b in fed.bars %}
+        <div class="bar"><span>{{ b.label }}</span>
+          <div class="track"><div class="fill" style="width: {{ b.pct }}%"></div></div>
+          <span class="num">{{ b.pct | round | int }}%</span></div>
+        {% endfor %}
+      </div>
+      {% if fed.next %}<p class="muted small">{{ fed.next }}</p>{% endif %}
+      <p class="muted small">Odds come from Kalshi, a market where people bet real money on the outcome.</p>
+    {% endif %}
+    {% if econ %}
+      <h3>Last week's economic reports</h3>
+      <table>
+        <tr><th>Report</th><th class="num">Expected</th><th class="num">Actual</th><th>Verdict</th></tr>
+        {% for r in econ %}
+        <tr><td>{{ r.event }}<div class="muted small">{{ r.day }}</div></td>
+          <td class="num">{{ r.expected }}</td>
+          <td class="num">{{ r.actual or "–" }}</td>
+          <td class="{{ r.tone }}">{{ r.verdict }}</td></tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if earnings or movers.watch %}
+  <div class="card">
+    <h2>Company News</h2>
+    {% if earnings %}
+      <h3>Who reported results</h3>
+      <p>{{ earnings.summary }}</p>
+      <table>
+        <tr><th>Company</th><th>Profit vs forecast</th><th>Sales vs forecast</th></tr>
+        {% for r in earnings.rows %}
+        <tr><td>{{ r.name }} <span class="muted small">{{ r.symbol }}</span></td>
+          <td><span class="pill {{ r.profit | replace('n/a','na') }}">{{ r.profit }}</span></td>
+          <td><span class="pill {{ r.sales | replace('n/a','na') }}">{{ r.sales }}</span></td></tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+    {% if movers.us.up %}
+      <h3>Biggest movers in the S&P 500</h3>
+      <div class="two">
+        <table><tr><th>Up the most</th><th class="num">Week</th></tr>
+          {% for x in movers.us.up %}<tr><td>{{ x.name }}</td><td class="num up">{{ x.chg }}</td></tr>{% endfor %}</table>
+        <table><tr><th>Down the most</th><th class="num">Week</th></tr>
+          {% for x in movers.us.down %}<tr><td>{{ x.name }}</td><td class="num down">{{ x.chg }}</td></tr>{% endfor %}</table>
+      </div>
+    {% endif %}
+    {% if movers.watch %}
+      <h3>The big names we follow</h3>
+      <table>
+        <tr><th>Company</th><th class="num">Last week</th><th class="num">This year</th></tr>
+        {% for x in movers.watch %}
+        <tr><td>{{ x.name }}</td>
+          <td class="num {{ 'up' if x.week_change_pct > 0 else 'down' }}">{{ pct(x.week_change_pct) }}</td>
+          <td class="num {{ 'up' if (x.ytd_pct or 0) > 0 else 'down' }}">{{ pct(x.ytd_pct) }}</td></tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if sectors %}
+  <div class="card">
+    <h2>Sector Performance</h2>
+    <p class="muted">The US market splits into 11 sectors. Each box's size shows its share of the market,
+      and its colour shows last week's move: green is up, red is down.</p>
+    <div class="heat">
+      {% for s in sectors %}
+      <div style="flex: {{ s.weight }} 1 {{ (s.weight * 6) | round | int }}px; background: {{ s.bg }}; color: {{ s.fg }}">
+        <b>{{ s.name }}</b><span>{{ s.week }}</span></div>
+      {% endfor %}
+    </div>
+    <table>
+      <tr><th>Sector</th><th class="num">Share of market</th><th class="num">Last week</th><th class="num">This year</th></tr>
+      {% for s in sectors %}
+      <tr><td>{{ s.name }}</td><td class="num">{{ '%.1f' % s.weight }}%</td>
+        <td class="num {{ 'up' if (s.week_raw or 0) > 0 else 'down' }}">{{ s.week }}</td>
+        <td class="num {{ 'up' if (s.ytd_raw or 0) > 0 else 'down' }}">{{ s.ytd }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Coming Up This Week ({{ week_no }})</h2>
+    <p class="muted small" style="text-align:center;margin-top:-10px">{{ this_week_range }}</p>
+    {% if ahead.note %}<div class="status">{{ ahead.note }}</div>{% endif %}
+    {% for day in ahead.days %}
+    <div class="day">
+      <h4>{{ day.label }}</h4>
+      {% if day["items"] %}
+        <ul>{% for it in day["items"] %}<li class="{{ it.kind }}">{% if it.high %}<b>{{ it.text }}</b>{% else %}{{ it.text }}{% endif %}</li>{% endfor %}</ul>
+      {% else %}<div class="quiet">Nothing major scheduled.</div>{% endif %}
+    </div>
+    {% endfor %}
+    {% if news_ahead %}
+      <h3>What others are watching</h3>
+      <div class="news"><ul>
+        {% for a in news_ahead %}<li><a href="{{ a.url }}">{{ a.title }}</a> <span class="src">· {{ a.source }}</span></li>{% endfor %}
+      </ul></div>
+    {% endif %}
+  </div>
+
+  {% if news %}
+  <div class="card news">
+    <h2>Stories That Shaped the Week</h2>
+    <p class="muted small" style="text-align:center;margin-top:-10px">Headlines from {{ last_week_range }}</p>
+    {% for t in news %}
+      <h4>{{ t.label }}</h4>
+      <ul>{% for a in t["items"] %}<li><a href="{{ a.url }}">{{ a.title }}</a> <span class="src">· {{ a.source }}</span></li>{% endfor %}</ul>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card term">
+    <h2>Term to Know: {{ term[0] | lower }}</h2>
+    <p>{{ term[1] }}</p>
+  </div>
+
+  <div class="footer">
+    Thank you for reading! It's only going to get better, promise 😉
+    <em>Disclosure: This newsletter is general education, not personal investment advice, and nothing here is a
+      recommendation to buy or sell any security. Figures come from public data sources and can change quickly.</em>
+    {% if errors %}<p>Some data could not be loaded this week: {{ errors.keys() | join(', ') }}.</p>{% endif %}
+  </div>
+
+</div>
+</body>
+</html>
