@@ -7,7 +7,10 @@ still sees the week that just ended. The feed is also rate-limited, so avoid
 running it more than a couple of times in five minutes.
 """
 
+import json
 from collections import Counter
+from datetime import date, timedelta
+from pathlib import Path
 
 import requests
 
@@ -15,11 +18,33 @@ from .util import BROWSER_HEADERS
 
 URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
 
+# Every fetch is saved here, keyed by the Monday of the week it covers, so the
+# following week's run can compare actual results against these forecasts.
+SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "data" / "econ_calendar"
+
+
+def _save_snapshot(events: list) -> Path | None:
+    days = sorted(e["date"][:10] for e in events)
+    if not days:
+        return None
+    first = date.fromisoformat(days[0])  # feed weeks start on Sunday
+    monday = first + timedelta(days=(7 - first.weekday()) % 7)
+    path = SNAPSHOT_DIR / f"{monday.isoformat()}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(events, indent=1, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def load_snapshot(monday: date) -> list:
+    path = SNAPSHOT_DIR / f"{monday.isoformat()}.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+
 
 def fetch(window, countries, impacts) -> dict:
     r = requests.get(URL, headers=BROWSER_HEADERS, timeout=20)
     r.raise_for_status()
     events = r.json()
+    _save_snapshot(events)
 
     start, end = window.start.isoformat(), window.end.isoformat()
     in_window = [e for e in events if start <= e["date"][:10] <= end]

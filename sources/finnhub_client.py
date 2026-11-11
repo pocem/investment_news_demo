@@ -169,14 +169,16 @@ class Finnhub:
         }
 
     # --- holidays ----------------------------------------------------------
-    def market_holidays(self, window) -> list:
+    def market_holidays(self, window, bond_holidays: dict) -> dict:
+        start, end = window.start.isoformat(), window.end.isoformat()
         data = self.get("/stock/market-holiday", exchange="US").get("data", [])
-        return [
-            {
-                "date": h["atDate"],
-                "event": h["eventName"],
-                "trading_hours": h.get("tradingHour") or "closed",
-            }
-            for h in data
-            if window.start.isoformat() <= h["atDate"] <= window.end.isoformat()
-        ]
+        return {
+            "us_stocks": [
+                {"date": h["atDate"], "event": h["eventName"], "trading_hours": h.get("tradingHour") or "closed"}
+                for h in data
+                if start <= h["atDate"] <= end
+            ],
+            "us_bonds": [
+                {"date": d, "event": name} for d, name in sorted(bond_holidays.items()) if start <= d <= end
+            ],
+        }
